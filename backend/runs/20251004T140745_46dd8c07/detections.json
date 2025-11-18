@@ -1,0 +1,52 @@
+{
+  "results": [
+    {
+      "step": 1,
+      "tactic": "xss-probe",
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/?q=%3Cscript%3Ealert%281%29%3C%2Fscript%3E"
+      },
+      "status": 200,
+      "elapsed_ms": 5,
+      "reflected": false,
+      "server_error": false,
+      "sqli_error": false,
+      "blocked_code": false,
+      "success": true,
+      "note": "Check for reflected XSS in a query parameter."
+    },
+    {
+      "step": 2,
+      "tactic": "xss-probe",
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/?q=hello-world"
+      },
+      "status": 200,
+      "elapsed_ms": 13,
+      "reflected": true,
+      "server_error": false,
+      "sqli_error": false,
+      "blocked_code": false,
+      "success": false,
+      "note": "Benign control input to compare behavior."
+    },
+    {
+      "step": 3,
+      "tactic": "sqli-probe",
+      "request": {
+        "method": "GET",
+        "url": "http://127.0.0.1:8000/?id=%27+OR+%271%27%3D%271"
+      },
+      "status": 403,
+      "elapsed_ms": 2,
+      "reflected": false,
+      "server_error": false,
+      "sqli_error": false,
+      "blocked_code": true,
+      "success": true,
+      "note": "Basic boolean-based SQLi probe in a query parameter."
+    }
+  ]
+}

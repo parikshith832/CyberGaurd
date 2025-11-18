@@ -1,0 +1,115 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Run Report 20251004154903</title>
+<style>
+body { font-family: Segoe UI, Arial, sans-serif; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ccc; padding: 6px 8px; vertical-align: top; }
+tr.ok { background: #eefaf0; }
+tr.blocked { background: #fff3cd; }
+tr.err { background: #fdecea; }
+pre { margin: 0; white-space: pre-wrap; word-break: break-word; }
+.summary { margin: 12px 0; }
+</style>
+</head>
+<body>
+<h2>Run 20251004154903</h2>
+<div class="summary">
+  <div>Total: 8 • Blocked: 5 • 2xx: 3 • Block rate: 0.625</div>
+  <pre>{
+  &quot;xss&quot;: {
+    &quot;total&quot;: 2,
+    &quot;blocked&quot;: 0,
+    &quot;block_rate&quot;: 0.0
+  },
+  &quot;benign&quot;: {
+    &quot;total&quot;: 1,
+    &quot;blocked&quot;: 0,
+    &quot;block_rate&quot;: 0.0
+  },
+  &quot;sqli&quot;: {
+    &quot;total&quot;: 5,
+    &quot;blocked&quot;: 5,
+    &quot;block_rate&quot;: 1.0
+  }
+}</pre>
+</div>
+<table>
+  <thead><tr><th>tag</th><th>method</th><th>url</th><th>status</th><th>ms</th><th>text</th></tr></thead>
+  <tbody>
+    
+    <tr class="ok">
+      <td>xss-script</td>
+      <td>GET</td>
+      <td>http://127.0.0.1:8000/?q=%3Cscript%3Ealert%281%29%3C%2Fscript%3E</td>
+      <td>200</td>
+      <td>9</td>
+      <td><pre>&quot;=alert(1) id=</pre></td>
+    </tr>
+    <tr class="ok">
+      <td>xss-svg</td>
+      <td>GET</td>
+      <td>http://127.0.0.1:8000/?q=%22%3E%3Csvg+onload%3Dalert%281%29%3E</td>
+      <td>200</td>
+      <td>22</td>
+      <td><pre>&quot;=&quot;&gt;&lt;svg onload=alert(1)&gt; id=</pre></td>
+    </tr>
+    <tr class="ok">
+      <td>benign</td>
+      <td>GET</td>
+      <td>http://127.0.0.1:8000/?q=hello-world</td>
+      <td>200</td>
+      <td>22</td>
+      <td><pre>&quot;=hello-world id=</pre></td>
+    </tr>
+    <tr class="blocked">
+      <td>sqli-quote</td>
+      <td>GET</td>
+      <td>http://127.0.0.1:8000/?id=%27+OR+%271%27%3D%271</td>
+      <td>403</td>
+      <td>3</td>
+      <td><pre>{&quot;error&quot;:&quot;blocked&quot;}
+</pre></td>
+    </tr>
+    <tr class="blocked">
+      <td>sqli-dquote</td>
+      <td>GET</td>
+      <td>http://127.0.0.1:8000/?id=+%22+OR+%221%22%3D%221+</td>
+      <td>403</td>
+      <td>19</td>
+      <td><pre>{&quot;error&quot;:&quot;blocked&quot;}
+</pre></td>
+    </tr>
+    <tr class="blocked">
+      <td>sqli-or-1-1</td>
+      <td>GET</td>
+      <td>http://127.0.0.1:8000/?id=OR+1%3D1--</td>
+      <td>403</td>
+      <td>15</td>
+      <td><pre>{&quot;error&quot;:&quot;blocked&quot;}
+</pre></td>
+    </tr>
+    <tr class="blocked">
+      <td>sqli-post-quote</td>
+      <td>POST</td>
+      <td>http://127.0.0.1:8000/api/find</td>
+      <td>403</td>
+      <td>16</td>
+      <td><pre>{&quot;error&quot;:&quot;blocked&quot;}
+</pre></td>
+    </tr>
+    <tr class="blocked">
+      <td>sqli-post-dquote</td>
+      <td>POST</td>
+      <td>http://127.0.0.1:8000/api/find</td>
+      <td>403</td>
+      <td>14</td>
+      <td><pre>{&quot;error&quot;:&quot;blocked&quot;}
+</pre></td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

@@ -1,0 +1,4 @@
+{"url": "http://127.0.0.1:8000/?q=%3Cscript%3Ealert%281%29%3C%2Fscript%3E", "status": 200, "elapsed_ms": 4, "text": "\"=alert(1) id="}
+{"url": "http://127.0.0.1:8000/?q=hello-world", "status": 200, "elapsed_ms": 25, "text": "\"=hello-world id="}
+{"url": "http://127.0.0.1:8000/?id=%27+OR+%271%27%3D%271", "status": 200, "elapsed_ms": 2, "text": "\"= id=' OR '1'='1"}
+{"url": "http://127.0.0.1:8000/api/find", "status": 200, "elapsed_ms": 13, "text": "{\"id\":\"' OR '1'='1\",\"ok\":true}\n"}

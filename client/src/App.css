@@ -1,0 +1,104 @@
+/* General body and font */
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #cfd3db;
+}
+
+/* Header Navigation links */
+.nav-link {
+  position: relative;
+  cursor: pointer;
+  transition: color 0.3s ease;
+  /* Added transition for color only to match animation */
+}
+
+/* Navigation underline effect */
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: currentColor;
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Animations */
+
+/* Typing cursor blink */
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+.animate-blink {
+  animation: blink 1s steps(2, start) infinite;
+}
+
+/* Fade in and move up animation */
+@keyframes fadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s forwards;
+  opacity: 0;
+}
+
+/* Text pulse for main header */
+@keyframes pulse {
+  0%, 100% { 
+    opacity: 1; 
+  }
+  50% { 
+    opacity: 0.6; 
+  }
+}
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Responsive container */
+.container {
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Gradient text clipped */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Background gradients */
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+/* Tailwind fade gradients as example */
+.from-blue-400 {
+  --tw-gradient-from: #3b82f6;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(59 130 246 / 0));
+}
+.via-purple-500 {
+  --tw-gradient-stops: var(--tw-gradient-from), #8b5cf6, var(--tw-gradient-to, rgb(139 92 246 / 0));
+}
+.to-red-500 {
+  --tw-gradient-to: #ef4444;
+}

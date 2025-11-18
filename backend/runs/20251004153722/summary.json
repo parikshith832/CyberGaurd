@@ -1,0 +1,1 @@
+{"target": "http://127.0.0.1:8000", "tactics": ["xss-probe", "sqli-probe"], "asr": 0.0, "block_rate": 0.0}

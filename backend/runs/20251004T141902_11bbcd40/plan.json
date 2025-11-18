@@ -1,0 +1,39 @@
+{
+  "target": "http://127.0.0.1:8000",
+  "tactics": [
+    "xss-probe",
+    "sqli-probe"
+  ],
+  "limits": {
+    "max_steps": 5
+  },
+  "actions": [
+    {
+      "step": 1,
+      "tactic": "xss-probe",
+      "method": "GET",
+      "path": "/",
+      "param": "q",
+      "payload": "<script>alert(1)</script>",
+      "description": "Check for reflected XSS in a query parameter."
+    },
+    {
+      "step": 2,
+      "tactic": "xss-probe",
+      "method": "GET",
+      "path": "/",
+      "param": "q",
+      "payload": "hello-world",
+      "description": "Benign control input to compare behavior."
+    },
+    {
+      "step": 3,
+      "tactic": "sqli-probe",
+      "method": "GET",
+      "path": "/",
+      "param": "id",
+      "payload": "' OR '1'='1",
+      "description": "Basic boolean-based SQLi probe in a query parameter."
+    }
+  ]
+}

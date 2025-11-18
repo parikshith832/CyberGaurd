@@ -1,0 +1,24 @@
+{
+  "target": "http://127.0.0.1:8000",
+  "total_requests": 8,
+  "blocked": 5,
+  "ok_2xx": 3,
+  "block_rate": 0.625,
+  "by_tactic": {
+    "xss": {
+      "total": 2,
+      "blocked": 0,
+      "block_rate": 0.0
+    },
+    "benign": {
+      "total": 1,
+      "blocked": 0,
+      "block_rate": 0.0
+    },
+    "sqli": {
+      "total": 5,
+      "blocked": 5,
+      "block_rate": 1.0
+    }
+  }
+}

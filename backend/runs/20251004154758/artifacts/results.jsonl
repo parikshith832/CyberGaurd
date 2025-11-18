@@ -1,0 +1,8 @@
+{"tag": "xss-script", "method": "GET", "url": "http://127.0.0.1:8000/?q=%3Cscript%3Ealert%281%29%3C%2Fscript%3E", "status": 200, "elapsed_ms": 8, "text": "\"=alert(1) id="}
+{"tag": "xss-svg", "method": "GET", "url": "http://127.0.0.1:8000/?q=%22%3E%3Csvg+onload%3Dalert%281%29%3E", "status": 200, "elapsed_ms": 3, "text": "\"=\"><svg onload=alert(1)> id="}
+{"tag": "benign", "method": "GET", "url": "http://127.0.0.1:8000/?q=hello-world", "status": 200, "elapsed_ms": 20, "text": "\"=hello-world id="}
+{"tag": "sqli-quote", "method": "GET", "url": "http://127.0.0.1:8000/?id=%27+OR+%271%27%3D%271", "status": 403, "elapsed_ms": 16, "text": "{\"error\":\"blocked\"}\n"}
+{"tag": "sqli-dquote", "method": "GET", "url": "http://127.0.0.1:8000/?id=+%22+OR+%221%22%3D%221+", "status": 403, "elapsed_ms": 15, "text": "{\"error\":\"blocked\"}\n"}
+{"tag": "sqli-or-1-1", "method": "GET", "url": "http://127.0.0.1:8000/?id=OR+1%3D1--", "status": 403, "elapsed_ms": 2, "text": "{\"error\":\"blocked\"}\n"}
+{"tag": "sqli-post-quote", "method": "POST", "url": "http://127.0.0.1:8000/api/find", "status": 403, "elapsed_ms": 13, "text": "{\"error\":\"blocked\"}\n"}
+{"tag": "sqli-post-dquote", "method": "POST", "url": "http://127.0.0.1:8000/api/find", "status": 403, "elapsed_ms": 1, "text": "{\"error\":\"blocked\"}\n"}
