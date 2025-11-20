@@ -80,6 +80,7 @@
   border-color:#5b7cff; box-shadow:0 0 0 3px #5b7cff33;
 }
 
+/* (old team radio kept here in case needed elsewhere, but unused now)
 .lg-radio{ display:flex; gap:10px }
 .lg-radio .pill{
   display:inline-flex; align-items:center; gap:8px; cursor:pointer;
@@ -89,6 +90,7 @@
 .lg-radio .pill input{ display:none }
 .lg-radio .pill:hover{ transform:translateY(-1px) }
 .lg-radio .pill.active{ border-color:#5b7cff; box-shadow:0 8px 20px #5b7cff33 }
+*/
 
 .lg-submit{
   margin-top:6px;
@@ -114,3 +116,37 @@
 /* keyframes */
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes spinReverse{to{transform:rotate(-360deg)}}
+
+/* NEW: link-style button for Create account / Back to login */
+.link-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: #93a3cb;
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+.link-button:hover {
+  color: #c7d2fe;
+}
+
+/* NEW: messages for errors and success */
+.lg-error {
+  color: #fb7185;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.lg-message {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.35);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}

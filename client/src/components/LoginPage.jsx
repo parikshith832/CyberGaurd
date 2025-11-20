@@ -1,21 +1,71 @@
 import React, { useState } from "react";
 import "./login-cyber.css";
 
+const API_BASE = "http://localhost:3001"; // adjust if your backend port is different
+
 const LoginPage = () => {
-  const [team, setTeam] = useState("blue");
+  // "login" or "register"
+  const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ username: "", password: "" });
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const onSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
+    setError("");
+    setMessage("");
+
+    try {
+      if (mode === "register") {
+        // Create account
+        const res = await fetch(`${API_BASE}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: form.username,
+            password: form.password,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || "Registration failed");
+        }
+
+        setMessage("Account created successfully. You can now log in.");
+        setMode("login");
+      } else {
+        // Login
+        const res = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: form.username,
+            password: form.password,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.token) {
+          throw new Error(data.error || "Login failed");
+        }
+
+        // Save token for later API calls
+        localStorage.setItem("token", data.token);
+        setMessage(`Logged in as ${form.username}`);
+
+        // TODO: navigate to dashboard if using react-router
+        // navigate("/dashboard");
+      }
+    } catch (err) {
+      setError(err.message || "Something went wrong");
+    } finally {
       setLoading(false);
-      alert(`Logged in as ${form.email} (${team} team)`);
-      // navigate to dashboard if using react-router's useNavigate
-    }, 1200);
+    }
   };
 
   return (
@@ -33,19 +83,26 @@ const LoginPage = () => {
               <span className="ring ring2" />
             </div>
             <div className="lg-title">
-              <h1>Access Console</h1>
-              <p>Authenticate to enter the simulation</p>
+              <h1>{mode === "login" ? "Access Console" : "Create Account"}</h1>
+              <p>
+                {mode === "login"
+                  ? "Authenticate to enter the simulation"
+                  : "Register a new account for the simulation"}
+              </p>
             </div>
           </div>
 
-          <form onSubmit={onSubmit} className="lg-form">
+          <form onSubmit={handleSubmit} className="lg-form">
+            {error && <div className="lg-error">{error}</div>}
+            {message && <div className="lg-message">{message}</div>}
+
             <label className="lg-field">
-              <span>Email</span>
+              <span>Username</span>
               <input
-                type="email"
-                name="email"
-                placeholder="name@example.com"
-                value={form.email}
+                type="text"
+                name="username"
+                placeholder="your_username"
+                value={form.username}
                 onChange={onChange}
                 required
               />
@@ -63,39 +120,48 @@ const LoginPage = () => {
               />
             </label>
 
-            <label className="lg-field">
-              <span>Team</span>
-              <div className="lg-radio">
-                <label className={`pill ${team==="blue"?"active":""}`}>
-                  <input
-                    type="radio"
-                    name="team"
-                    value="blue"
-                    checked={team==="blue"}
-                    onChange={() => setTeam("blue")}
-                  />
-                  🛡️ Blue
-                </label>
-                <label className={`pill ${team==="red"?"active":""}`}>
-                  <input
-                    type="radio"
-                    name="team"
-                    value="red"
-                    checked={team==="red"}
-                    onChange={() => setTeam("red")}
-                  />
-                  🗡️ Red
-                </label>
-              </div>
-            </label>
-
             <button className="lg-submit" disabled={loading}>
-              {loading ? <span className="spinner" /> : "Enter Simulation"}
+              {loading ? (
+                <span className="spinner" />
+              ) : mode === "login" ? (
+                "Login"
+              ) : (
+                "Create Account"
+              )}
             </button>
 
             <div className="lg-meta">
-              <a href="#forgot">Forgot password?</a>
-              <a href="#signup">Create account</a>
+              {mode === "login" ? (
+                <>
+                  <a href="#forgot">Forgot password?</a>
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => {
+                      setError("");
+                      setMessage("");
+                      setMode("register");
+                    }}
+                  >
+                    Create account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span />
+                  <button
+                    type="button"
+                    className="link-button"
+                    onClick={() => {
+                      setError("");
+                      setMessage("");
+                      setMode("login");
+                    }}
+                  >
+                    Back to login
+                  </button>
+                </>
+              )}
             </div>
           </form>
         </div>

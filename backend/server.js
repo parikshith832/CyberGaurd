@@ -16,6 +16,12 @@ const jwt = require('jsonwebtoken');
 
 const db = require('./db');
 const { selectTestsForDifficulty } = require('./attackTests');
+app.get('/debug/users-columns', (req, res) => {
+  db.all("PRAGMA table_info(users);", [], (err, rows) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(rows);
+  });
+});
 
 // ---------------------------------------------------------------------
 // Gemini AI client setup

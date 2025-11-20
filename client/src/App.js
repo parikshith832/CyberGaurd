@@ -6,7 +6,8 @@ import AttackPage from './components/AttackPage';
 import DefensePage from './components/DefensePage';
 import LoginPage from './components/LoginPage';
 import Dashboard from './components/Dashboard';
-import HomePage from './pages/HomePage';
+import HomePage from './pages/HomePage';    // your user login
+import AdminPanel from "./admin/admin";  
 
 // New animated header
 import CyberHeader from './components/CyberHeader';
@@ -20,6 +21,7 @@ const App = () => (
         <Route path="/attack" element={<AttackPage />} />
         <Route path="/defense" element={<DefensePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin" element={<AdminPanel />} />
         <Route path="/dashboard" element={<Dashboard />} />
       </Routes>
     </div>
