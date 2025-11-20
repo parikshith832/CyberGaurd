@@ -6,7 +6,7 @@ import Editor from "@monaco-editor/react";
 const defaultAttack = `// Red script: SQLi probe
 // attack(target) receives { url } and http with get/post returning { status, body }
 export async function attack(target, http) {
-  const payloads = ["' '1'='1", "' UNION SELECT null--", "'; DROP TABLE users;--"];
+  const payloads = ["' OR '1'='1", "' UNION SELECT null--", "'; DROP TABLE users;--"];
   const httpLog = [];
 
   const pushLog = (method, path, status) => httpLog.push({ method, path, status });
@@ -37,7 +37,10 @@ const AttackPage = () => {
   const [target, setTarget] = useState({
     url: "http://host.docker.internal:3001/target",
   });
-  const [difficulty, setDifficulty] = useState("easy"); // easy | moderate | difficult
+  const [difficulty, setDifficulty] = useState("easy"); // easy | moderate | hard
+  const [tests, setTests] = useState([]);
+  const [score, setScore] = useState(null);
+
   const [aiInput, setAiInput] = useState(
     "Suggest SQLi payloads against a vulnerable login"
   );
@@ -58,10 +61,14 @@ const AttackPage = () => {
     console.log("Run button clicked");
     setRunning(true);
     setResult(null);
+    setTests([]);
+    setScore(null);
+
     addEvent({
       level: "info",
       msg: `Running attack script (difficulty: ${difficulty})...`,
     });
+
     try {
       const res = await fetch("http://localhost:3001/api/lab/run", {
         method: "POST",
@@ -72,13 +79,29 @@ const AttackPage = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "run failed");
       console.log("Response data:", data);
+
       setResult(data);
-      if (data.logs)
+
+      if (data.logs) {
         data.logs.forEach((l) =>
           addEvent({ level: l.level || "log", msg: l.msg })
         );
-      if (data.finding)
+      }
+      if (data.finding) {
         addEvent({ level: "success", msg: `Finding: ${data.finding}` });
+      }
+
+      // NEW: save tests + score
+      if (Array.isArray(data.tests)) {
+        setTests(data.tests);
+      } else {
+        setTests([]);
+      }
+      if (typeof data.score === "number") {
+        setScore(data.score);
+      } else {
+        setScore(null);
+      }
     } catch (err) {
       console.error(err);
       addEvent({ level: "error", msg: err.message });
@@ -162,7 +185,7 @@ const AttackPage = () => {
               >
                 <option value="easy">Easy</option>
                 <option value="moderate">Moderate</option>
-                <option value="difficult">Difficult</option>
+                <option value="hard">Hard</option>
               </select>
             </div>
 
@@ -222,6 +245,7 @@ const AttackPage = () => {
                   <span>{`flag{demo}`}</span>
                 </div>
               </div>
+
               <div className="http-log">
                 <div className="line head">
                   <span>M</span>
@@ -239,11 +263,33 @@ const AttackPage = () => {
                   <div className="muted">Run a script to see traffic...</div>
                 )}
               </div>
+
               <div className="res-box">
                 <strong>Result</strong>
                 <pre>
                   {JSON.stringify(result ?? { info: "Waiting..." }, null, 2)}
                 </pre>
+
+                {score !== null && (
+                  <div className="score-summary">
+                    <strong>
+                      Score ({difficulty}): {score} / {tests.length}
+                    </strong>
+                  </div>
+                )}
+
+                {tests.length > 0 && (
+                  <div className="tests-list">
+                    <strong>Test cases</strong>
+                    <ul>
+                      {tests.map((t) => (
+                        <li key={t.id}>
+                          {t.title} – {t.passed ? "Passed ✅" : "Failed ❌"}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           </div>
