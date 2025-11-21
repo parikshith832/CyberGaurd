@@ -1,119 +1,277 @@
-import React, { useMemo } from "react";
-import "./dashboard-cyber.css";
+// client/src/components/Dashboard.jsx
 
-const Metric = ({ label, value, accent }) => (
-  <div className={`met ${accent}`}>
-    <div className="met-glow" />
-    <span className="met-label">{label}</span>
-    <strong className="met-value">{value}</strong>
-  </div>
-);
+import React, { useEffect, useState } from "react";
 
-const UserList = ({ title, users, accent }) => (
-  <div className={`panel ${accent}`}>
-    <div className="panel-glow" />
-    <h3>{title}</h3>
-    <ul className="list">
-      {users.length ? users.map(u => (
-        <li key={u.id}>
-          <span className="dot" />
-          <span className="name">{u.name}</span>
-          <span className="role">{u.role||"Agent"}</span>
-        </li>
-      )) : <li className="empty">No active players</li>}
-    </ul>
-  </div>
-);
+const API_BASE = "http://localhost:3001";
 
-const Feed = ({ items }) => (
-  <div className="panel feed">
-    <div className="panel-glow" />
-    <h3>Event Feed</h3>
-    <ul className="feed-list">
-      {items.map((e, i) => (
-        <li key={i}>
-          <span className={`badge ${e.type}`}>{e.type}</span>
-          <span className="msg">{e.msg}</span>
-          <time>{e.time}</time>
-        </li>
-      ))}
-    </ul>
-  </div>
-);
+const Dashboard = () => {
+  const [summary, setSummary] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
 
-const Dashboard = ({ gameState, user }) => {
-  const {
-    blueTeam = { score: 0, actions: [], players: [] },
-    redTeam  = { score: 0, actions: [], players: [] },
-    round    = 1,
-    isActive = true,
-    events   = [],
-    activeUsers = 0
-  } = gameState || {};
+  const fetchData = async () => {
+    try {
+      setErr("");
+      const [sRes, eRes] = await Promise.all([
+        fetch(`${API_BASE}/api/dashboard/summary`),
+        fetch(`${API_BASE}/api/dashboard/events`),
+      ]);
 
-  const metrics = useMemo(() => ([
-    { label: "Round", value: round, accent: "m-blue" },
-    { label: "Status", value: isActive ? "ACTIVE" : "PAUSED", accent: isActive ? "m-green" : "m-red" },
-    { label: "Active Users", value: activeUsers || (blueTeam.players.length + redTeam.players.length), accent: "m-purple" },
-    { label: "Blue Score", value: blueTeam.score, accent: "m-blue" },
-    { label: "Red Score", value: redTeam.score, accent: "m-red" },
-    { label: "Events", value: events.length, accent: "m-cyan" },
-  ]), [round,isActive,activeUsers,blueTeam,redTeam,events]);
+      const sData = await sRes.json();
+      const eData = await eRes.json();
+
+      if (!sRes.ok) throw new Error(sData.error || "Summary failed");
+      if (!eRes.ok) throw new Error(eData.error || "Events failed");
+
+      setSummary(sData);
+      setEvents(Array.isArray(eData) ? eData : []);
+      setLoading(false);
+    } catch (e) {
+      console.error("Dashboard fetch error:", e);
+      setErr(e.message || "Failed to load dashboard");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const id = setInterval(fetchData, 5000); // simple realtime polling
+    return () => clearInterval(id);
+  }, []);
+
+  const fmtTime = (ts) => {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return ts;
+    return d.toLocaleTimeString();
+  };
+
+  const safe = (path, def = 0) => path ?? def;
 
   return (
-    <main className="db-viewport">
-      <div className="db-beams" />
-      <div className="db-grid" />
-      <div className="db-grain" />
+    <main className="atk-viewport">
+      <div className="atk-beams" />
+      <div className="atk-grid" />
+      <div className="atk-grain" />
 
-      <section className="db-wrap">
-        <header className="db-head">
-          <div className="head-left">
-            <h1>Operations Center</h1>
-            <p>Welcome {user?.name || "Operator"} — Maintain resilience and visibility.</p>
-          </div>
-          <div className={`state ${isActive?"on":"off"}`}>
-            <span className="pulse" />
-            {isActive ? "Live" : "Paused"}
-          </div>
+      <section className="atk-wrap">
+        <header className="atk-head">
+          <h1>Operations Center</h1>
         </header>
 
-        {/* Metrics */}
-        <section className="met-grid">
-          {metrics.map((m,i) => (
-            <div className="met-cell fade-in" style={{animationDelay:`${i*0.08}s`}} key={m.label}>
-              <Metric {...m} />
+        {err && (
+          <div
+            style={{
+              marginBottom: "12px",
+              padding: "8px 12px",
+              borderRadius: "8px",
+              background: "#7f1d1d",
+              color: "#fee2e2",
+            }}
+          >
+            {err}
+          </div>
+        )}
+
+        {/* Top row cards */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
+            gap: "12px",
+            marginBottom: "16px",
+          }}
+        >
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Round</span>
             </div>
-          ))}
-        </section>
+            <div style={{ padding: "8px 12px", fontSize: "20px" }}>1</div>
+          </div>
 
-        {/* Main grid */}
-        <section className="panels">
-          <div className="col">
-            <UserList title="Blue Team" users={blueTeam.players} accent="p-blue" />
-            <UserList title="Red Team"  users={redTeam.players}  accent="p-red" />
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Status</span>
+            </div>
+            <div
+              style={{
+                padding: "8px 12px",
+                fontSize: "20px",
+                fontWeight: "bold",
+                color: "#4ade80",
+              }}
+            >
+              ACTIVE
+            </div>
           </div>
-          <div className="col">
-            <Feed items={events.length ? events : [
-              { type:"info", msg:"Sensors calibrated", time:"now" },
-              { type:"attack", msg:"Phishing campaign detected", time:"1m" },
-              { type:"defense", msg:"Rule deployed to WAF", time:"2m" },
-              { type:"info", msg:"Honeypot tripped by bot", time:"5m" },
-            ]} />
-          </div>
-        </section>
 
-        {/* Ticker */}
-        <section className="db-ticker">
-          <div className="track">
-            <span>Blue score {blueTeam.score}</span>
-            <span>Red score {redTeam.score}</span>
-            <span>Round {round}</span>
-            <span>Agents online {blueTeam.players.length + redTeam.players.length}</span>
-            <span>Latency stable</span>
-            <span>IDS signatures updated</span>
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Total Runs</span>
+            </div>
+            <div style={{ padding: "8px 12px", fontSize: "20px" }}>
+              {summary ? summary.totalRuns : loading ? "…" : 0}
+            </div>
           </div>
-        </section>
+
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Total Score</span>
+            </div>
+            <div style={{ padding: "8px 12px", fontSize: "20px" }}>
+              {summary ? summary.totalScore : loading ? "…" : 0}
+            </div>
+          </div>
+
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Max Score</span>
+            </div>
+            <div style={{ padding: "8px 12px", fontSize: "20px" }}>
+              {summary ? summary.maxScore : loading ? "…" : 0}
+            </div>
+          </div>
+        </div>
+
+        {/* Middle row: per-difficulty scores + event feed */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.3fr 1.7fr",
+            gap: "16px",
+          }}
+        >
+          {/* Left: difficulty breakdown */}
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Scoreboard</span>
+            </div>
+            <div className="sim-body">
+              <div className="kv">
+                <div>
+                  <strong>Easy</strong>
+                  <span>
+                    Runs:{" "}
+                    {summary
+                      ? safe(summary.byDifficulty.easy.runs)
+                      : loading
+                      ? "…\n"
+                      : 0}
+                  </span>
+                  <span>
+                    <br></br>
+                    Score:{" "}
+                    {summary
+                      ? safe(summary.byDifficulty.easy.score)
+                      : loading
+                      ? "…"
+                      : 0}
+                    {" / "}
+                    {summary
+                      ? safe(summary.byDifficulty.easy.maxScore)
+                      : loading
+                      ? "…"
+                      : 0}
+                  </span>
+                </div>
+                <div>
+                  <strong>Moderate</strong>
+                  <span>
+                    Runs:{" "}
+                    {summary
+                      ? safe(summary.byDifficulty.moderate.runs)
+                      : loading
+                      ? "…"
+                      : 0}
+                  </span>
+                  <span>
+                    <br></br>
+                    Score:{" "}
+                    {summary
+                      ? safe(summary.byDifficulty.moderate.score)
+                      : loading
+                      ? "…"
+                      : 0}
+                    {" / "}
+                    {summary
+                      ? safe(summary.byDifficulty.moderate.maxScore)
+                      : loading
+                      ? "…"
+                      : 0}
+                  </span>
+                </div>
+                <div>
+                  <strong>Hard</strong>
+                  <span>
+                    Runs:{" "}
+                    {summary
+                      ? safe(summary.byDifficulty.hard.runs)
+                      : loading
+                      ? "…"
+                      : 0}
+                  </span>
+                  <span>
+                    <br></br>
+                    Score:{" "}
+                    {summary
+                      ? safe(summary.byDifficulty.hard.score)
+                      : loading
+                      ? "…"
+                      : 0}
+                    {" / "}
+                    {summary
+                      ? safe(summary.byDifficulty.hard.maxScore)
+                      : loading
+                      ? "…"
+                      : 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: event feed */}
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Event Feed</span>
+            </div>
+            <div
+              className="sim-body"
+              style={{ display: "flex", flexDirection: "column" }}
+            >
+              <div className="http-log" style={{ maxHeight: "260px" }}>
+                <div className="line head">
+                  <span>Time</span>
+                  <span>Challenge</span>
+                  <span>Score</span>
+                </div>
+                {events.map((e) => (
+                  <div key={e.id} className="line">
+                    <span>{fmtTime(e.created_at)}</span>
+                    <span>
+                      {String(e.difficulty || "").toUpperCase()} ·{" "}
+                      {e.finding || e.status}
+                    </span>
+                    <span>
+                      {e.score}/{e.max_score}
+                    </span>
+                  </div>
+                ))}
+                {!events.length && !loading && (
+                  <div className="muted" style={{ padding: "10px" }}>
+                    No runs yet. Execute an attack to see results here.
+                  </div>
+                )}
+                {loading && (
+                  <div className="muted" style={{ padding: "10px" }}>
+                    Loading…
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   );

@@ -11,6 +11,7 @@ import DefensePage from "./components/DefensePage";
 import LoginPage from "./components/LoginPage";
 import Dashboard from "./components/Dashboard";
 import HomePage from "./pages/HomePage";
+import AttackSolutionPage from "./components/AttackSolutionPage";
 
 import CyberHeader from "./components/CyberHeader";
 
@@ -34,6 +35,16 @@ const App = () => {
             path="/attack"
             element={
               isLoggedIn() ? <AttackPage /> : <Navigate to="/login" replace />
+            }
+          />
+          <Route
+            path="/attack/solution"
+            element={
+              isLoggedIn() ? (
+                <AttackSolutionPage />
+              ) : (
+                <Navigate to="/login" replace />
+              )
             }
           />
           <Route

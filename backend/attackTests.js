@@ -1,173 +1,154 @@
-// attackTests.js
-// Question bank + helper to select tests by difficulty
+// backend/attackTests.js
 
-const ATTACK_TESTS = [
-  // ---------- EASY (5) ----------
-  {
-    id: 'easy-sqli-login',
-    difficulty: 'easy',
-    title: 'Detect basic SQLi on /login',
-    description:
-      'Flag SQL injection when a classic OR 1=1 payload against /login causes a 500 with SQL error text.',
-    check: (result) => {
-      if (!result || !Array.isArray(result.http)) return false;
-      const finding = String(result.finding || '').toLowerCase();
-      const hasLogin500 = result.http.some(
-        (h) =>
-          h &&
-          typeof h.path === 'string' &&
-          h.path.includes('/login') &&
-          h.status === 500
-      );
-      return finding.includes('sqli') && hasLogin500;
-    }
-  },
-  {
-    id: 'easy-payload-used',
-    difficulty: 'easy',
-    title: 'Use at least one SQLi-style payload',
-    description:
-      "Try a payload such as ' OR '1'='1 or UNION SELECT in the attack code.",
-    check: (result) => {
-      const payload = String(result.payload || '').toLowerCase();
-      return (
-        payload.includes("' or '1'='1") ||
-        payload.includes('" or "1"="1') ||
-        payload.includes('union select') ||
-        payload.includes(' or 1=1')
-      );
-    }
-  },
-  {
-    id: 'easy-logs-present',
-    difficulty: 'easy',
-    title: 'Log at least one HTTP request',
-    description:
-      'Record at least one HTTP request in the http array for observability.',
-    check: (result) => Array.isArray(result.http) && result.http.length >= 1
-  },
-  {
-    id: 'easy-no-crash',
-    difficulty: 'easy',
-    title: 'Return structured JSON without crashing',
-    description:
-      'Return an object with finding and http fields (no top-level error).',
-    check: (result) =>
-      !!result &&
-      typeof result === 'object' &&
-      'finding' in result &&
-      'http' in result &&
-      !result.error
-  },
-  {
-    id: 'easy-no-issue-status',
-    difficulty: 'easy',
-    title: 'Report "no_issue" when nothing looks vulnerable',
-    description:
-      'If no 500 or SQL error messages occur, status should be no_issue, not success.',
-    check: (result) => {
-      if (!result || !Array.isArray(result.http)) return false;
-      const any500 = result.http.some((h) => h && h.status === 500);
-      if (any500) return true; // not applicable, they actually found an issue
-      return result.status === 'no_issue';
-    }
-  },
+// out = parsed JSON from the sandbox: { finding, payload, http, ... }
 
-  // ---------- MODERATE (3) ----------
-  {
-    id: 'mod-search-sqli',
-    difficulty: 'moderate',
-    title: 'Probe /search for SQLi',
-    description:
-      'Send at least one payload to /search that triggers a 500 DB error.',
-    check: (result) => {
-      if (!result || !Array.isArray(result.http)) return false;
-      return result.http.some(
-        (h) =>
-          h &&
-          typeof h.path === 'string' &&
-          h.path.includes('/search') &&
-          h.status === 500
-      );
-    }
-  },
-  {
-    id: 'mod-multiple-payloads',
-    difficulty: 'moderate',
-    title: 'Try multiple payloads',
-    description:
-      'Loop through at least three different payloads to increase coverage.',
-    check: (result) => {
-      if (!result || !Array.isArray(result.http)) return false;
-      return result.http.length >= 3;
-    }
-  },
-  {
-    id: 'mod-body-based-detection',
-    difficulty: 'moderate',
-    title: 'Detect SQLi from error text as well as status code',
-    description:
-      'If status is 200 but body contains SQL error keywords, still classify as Possible SQLi.',
-    check: (result) => {
-      const finding = String(result.finding || '').toLowerCase();
-      const bodyErrors =
-        Array.isArray(result.logs) &&
-        result.logs.some((l) =>
-          String(l.msg || '')
-            .toLowerCase()
-            .includes('sql')
+function easyTests() {
+  return [
+    {
+      id: 1,
+      difficulty: "easy",
+      title: "Detect basic SQLi on /login",
+      description:
+        "Send at least one SQLi payload to /login that causes a 500 with SQL error text and report it in finding.",
+      points: 10,
+      check(out) {
+        const http = Array.isArray(out.http) ? out.http : [];
+        const has500Login = http.some(
+          (h) =>
+            String(h.path || "").startsWith("/login") &&
+            Number(h.status) === 500
         );
-      return finding.includes('sqli') && bodyErrors;
-    }
-  },
 
-  // ---------- HARD (2) ----------
-  {
-    id: 'hard-multi-endpoint-strategy',
-    difficulty: 'hard',
-    title: 'Attack multiple endpoints in one script',
-    description:
-      'Probe both /login and /search and aggregate findings in one result object.',
-    check: (result) => {
-      if (!result || !Array.isArray(result.http)) return false;
-      const hitLogin = result.http.some(
-        (h) => h && typeof h.path === 'string' && h.path.includes('/login')
-      );
-      const hitSearch = result.http.some(
-        (h) => h && typeof h.path === 'string' && h.path.includes('/search')
-      );
-      return hitLogin && hitSearch;
-    }
-  },
-  {
-    id: 'hard-stealthy-payload',
-    difficulty: 'hard',
-    title: 'Use less obvious SQLi payloads',
-    description:
-      "Cause a SQL error using payloads other than the classic ' OR '1'='1.",
-    check: (result) => {
-      if (!result || !Array.isArray(result.http)) return false;
-      const payload = String(result.payload || '').toLowerCase();
-      const usedClassic = payload.includes("' or '1'='1");
-      const has500 = result.http.some((h) => h && h.status === 500);
-      return has500 && !usedClassic;
-    }
-  }
-];
+        const finding =
+          typeof out.finding === "string" ? out.finding.toLowerCase() : "";
+        const mentionsSQLi =
+          finding.includes("sqli") ||
+          finding.includes("sql injection") ||
+          finding.includes("possible sqli");
 
-function selectTestsForDifficulty(difficulty) {
-  if (difficulty === 'moderate') {
-    return ATTACK_TESTS.filter(
-      (t) => t.difficulty === 'easy' || t.difficulty === 'moderate'
-    );
-  }
-  if (difficulty === 'hard') {
-    return ATTACK_TESTS;
-  }
-  return ATTACK_TESTS.filter((t) => t.difficulty === 'easy');
+        // Full points only if they actually triggered the DB error AND reported it.
+        return has500Login && mentionsSQLi ? 10 : 0;
+      },
+    },
+    {
+      id: 2,
+      difficulty: "easy",
+      title: "Use at least one SQLi-style payload",
+      description:
+        "Use a classic SQLi payload such as ' OR '1'='1 or UNION SELECT in the attack code.",
+      points: 5,
+      check(out) {
+        const payload = String(out.payload || "");
+        const lower = payload.toLowerCase();
+        const hasClassic =
+          payload.includes("' OR '1'='1") || lower.includes("union select");
+        return hasClassic ? 5 : 0;
+      },
+    },
+    {
+      id: 3,
+      difficulty: "easy",
+      title: "Log at least one HTTP request",
+      description:
+        "Use the provided http helper to perform at least one real request (no static output).",
+      points: 5,
+      check(out) {
+        const http = Array.isArray(out.http) ? out.http : [];
+        // Require at least one real-looking entry
+        const hasRequest = http.some(
+          (h) => h && h.method && h.path && typeof h.status !== "undefined"
+        );
+        return hasRequest ? 5 : 0;
+      },
+    },
+  ];
 }
 
-module.exports = {
-  ATTACK_TESTS,
-  selectTestsForDifficulty
-};
+function moderateTests() {
+  return [
+    {
+      id: 4,
+      difficulty: "moderate",
+      title: "Probe /search for SQLi",
+      description:
+        "Send at least one payload to /search that triggers a 500 DB error.",
+      points: 10,
+      check(out) {
+        const http = Array.isArray(out.http) ? out.http : [];
+        const has500Search = http.some(
+          (h) =>
+            String(h.path || "").startsWith("/search") &&
+            Number(h.status) === 500
+        );
+        return has500Search ? 10 : 0;
+      },
+    },
+    {
+      id: 5,
+      difficulty: "moderate",
+      title: "Try multiple payloads",
+      description:
+        "Loop through at least three different payloads instead of a single hard-coded one.",
+      points: 5,
+      check(out) {
+        const http = Array.isArray(out.http) ? out.http : [];
+        const uniquePaths = new Set(http.map((h) => h.path));
+        return uniquePaths.size >= 3 ? 5 : 0;
+      },
+    },
+  ];
+}
+
+function hardTests() {
+  return [
+    {
+      id: 6,
+      difficulty: "hard",
+      title: "Attack multiple endpoints in one script",
+      description:
+        "Target both /login and /search at least once and aggregate the findings.",
+      points: 10,
+      check(out) {
+        const http = Array.isArray(out.http) ? out.http : [];
+        const hitLogin = http.some((h) =>
+          String(h.path || "").startsWith("/login")
+        );
+        const hitSearch = http.some((h) =>
+          String(h.path || "").startsWith("/search")
+        );
+        return hitLogin && hitSearch ? 10 : 0;
+      },
+    },
+    {
+      id: 7,
+      difficulty: "hard",
+      title: "Use less obvious SQLi payloads",
+      description:
+        "Trigger a SQL error using a payload other than the classic ' OR '1'='1.",
+      points: 10,
+      check(out) {
+        const payload = String(out.payload || "");
+        const lower = payload.toLowerCase();
+
+        const isClassic = payload.includes("' OR '1'='1");
+        const looksSQLi =
+          lower.includes("union select") ||
+          lower.includes("or 1=1") ||
+          lower.includes("or true");
+
+        return !isClassic && looksSQLi ? 10 : 0;
+      },
+    },
+  ];
+}
+
+// Difficulty comes in as "easy", "moderate", or "hard" (lowercase)
+function selectTestsForDifficulty(diff) {
+  const d = (diff || "easy").toLowerCase();
+  if (d === "easy") return easyTests();
+  if (d === "moderate") return moderateTests();
+  if (d === "hard") return hardTests();
+  return easyTests();
+}
+
+module.exports = { selectTestsForDifficulty };

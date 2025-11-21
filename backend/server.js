@@ -13,6 +13,9 @@ const { selectTestsForDifficulty } = require("./attackTests");
 
 let genAI = null;
 
+// ------------------------------------------------------
+// Gemini AI client (or mock) setup
+// ------------------------------------------------------
 try {
   if (process.env.GEMINI_API_KEY) {
     const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -49,17 +52,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/debug/users-columns", (req, res) => {
-  db.all("PRAGMA table_info(users);", [], (err, rows) => {
+// ------------------------------------------------------
+// Debug route: inspect runs table columns
+// ------------------------------------------------------
+app.get("/debug/runs-columns", (req, res) => {
+  db.all("PRAGMA table_info(runs);", [], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
   });
 });
 
-// -------------------------------
+// ------------------------------------------------------
 // Auth routes (register + login)
-// -------------------------------
-
+// ------------------------------------------------------
 app.post("/api/auth/register", (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
@@ -118,6 +123,9 @@ app.post("/api/auth/login", (req, res) => {
   });
 });
 
+// ------------------------------------------------------
+// Auth middleware
+// ------------------------------------------------------
 function auth(req, res, next) {
   const header = req.headers.authorization || "";
   const token = header.replace("Bearer ", "");
@@ -149,10 +157,9 @@ function adminAuth(req, res, next) {
   }
 }
 
-// -------------------------------
+// ------------------------------------------------------
 // Admin API endpoints
-// -------------------------------
-
+// ------------------------------------------------------
 app.get("/api/admin/users", adminAuth, (req, res) => {
   db.all(
     "SELECT id, username, is_admin, created_at FROM users",
@@ -185,12 +192,93 @@ app.delete("/api/admin/users/:id", adminAuth, (req, res) => {
     return res.json({ success: true });
   });
 });
+// ------------------------------------------------------
+// Dashboard API: summary + recent runs
+// ------------------------------------------------------
 
-// ---------------------------------------------------------------------
+// GET /api/dashboard/summary
+// Returns overall stats and per-difficulty scores
+app.get("/api/dashboard/summary", (req, res) => {
+  const summary = {
+    totalRuns: 0,
+    totalScore: 0,
+    maxScore: 0,
+    totalTests: 0,
+    byDifficulty: {
+      easy: { runs: 0, score: 0, maxScore: 0 },
+      moderate: { runs: 0, score: 0, maxScore: 0 },
+      hard: { runs: 0, score: 0, maxScore: 0 },
+    },
+  };
+
+  db.all(
+    `SELECT difficulty,
+            COUNT(*)          AS runs,
+            SUM(score)        AS score,
+            SUM(max_score)    AS maxScore,
+            SUM(total_tests)  AS tests
+     FROM runs
+     GROUP BY difficulty`,
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error("Dashboard summary error:", err.message);
+        return res.status(500).json({ error: "DB error" });
+      }
+
+      rows.forEach((row) => {
+        const d = (row.difficulty || "easy").toLowerCase();
+        const bucket =
+          d === "hard"
+            ? summary.byDifficulty.hard
+            : d === "moderate"
+            ? summary.byDifficulty.moderate
+            : summary.byDifficulty.easy;
+
+        bucket.runs = row.runs || 0;
+        bucket.score = row.score || 0;
+        bucket.maxScore = row.maxScore || 0;
+
+        summary.totalRuns += row.runs || 0;
+        summary.totalScore += row.score || 0;
+        summary.maxScore += row.maxScore || 0;
+        summary.totalTests += row.tests || 0;
+      });
+
+      return res.json(summary);
+    }
+  );
+});
+
+// GET /api/dashboard/events
+// Returns latest completed runs (most recent first)
+app.get("/api/dashboard/events", (req, res) => {
+  db.all(
+    `SELECT id,
+            datetime(created_at, 'localtime') AS created_at,
+            difficulty,
+            score,
+            max_score,
+            status,
+            finding
+     FROM runs
+     ORDER BY created_at DESC
+     LIMIT 20`,
+    [],
+    (err, rows) => {
+      if (err) {
+        console.error("Dashboard events error:", err.message);
+        return res.status(500).json({ error: "DB error" });
+      }
+      res.json(rows);
+    }
+  );
+});
+
+// ------------------------------------------------------
 // AI helper using Gemini
-// ---------------------------------------------------------------------
-
-// POST /api/ai/assist  { prompt?, context? }
+// ------------------------------------------------------
+// POST /api/ai/assist  { prompt?, context? }
 app.post("/api/ai/assist", async (req, res) => {
   try {
     const { prompt, context } = req.body || {};
@@ -228,10 +316,9 @@ app.post("/api/ai/assist", async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------
+// ------------------------------------------------------
 // Sandbox runner configuration
-// ---------------------------------------------------------------------
-
+// ------------------------------------------------------
 const SANDBOX_DIR = "C:/Users/parik/CyberSecurity/sandbox";
 const RUNS_DIR = path.join(SANDBOX_DIR, "runs");
 const RUNNER_PATH = path.join(SANDBOX_DIR, "runner.mjs");
@@ -244,49 +331,72 @@ async function ensureDirs() {
 // Writes runner.mjs that imports ATTACK_PATH and calls attack(target, http)
 async function writeRunner() {
   const runner = `
-    const target = JSON.parse(process.env.TARGET || '{"url":"http://host.docker.internal:3001/target"}');
+    const target = JSON.parse(process.env.TARGET || '{"url":"http://host.docker.internal:3001/target"}');
 
+    const http = {
+      async get(url, headers = {}) {
+        const res = await fetch(url, { method: 'GET', headers });
+        const text = await res.text();
+        return { status: res.status, body: text };
+      },
+      async post(url, body, headers = {}) {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...headers },
+          body: JSON.stringify(body)
+        });
+        const text = await res.text();
+        return { status: res.status, body: text };
+      }
+    };
 
-    const http = {
-      async get(url, headers = {}) {
-        const res = await fetch(url, { method: 'GET', headers });
-        const text = await res.text();
-        return { status: res.status, body: text };
-      },
-      async post(url, body, headers = {}) {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...headers },
-          body: JSON.stringify(body)
-        });
-        const text = await res.text();
-        return { status: res.status, body: text };
-      }
-    };
-
-
-    (async () => {
-      try {
-        const mod = await import(process.env.ATTACK_PATH || './runs/attack.mjs');
-        if (!mod || typeof mod.attack !== 'function') {
-          console.log(JSON.stringify({ error: 'No attack() export found' }));
-          return;
-        }
-        const out = await mod.attack(target, http);
-        console.log(JSON.stringify(out || {}));
-      } catch (e) {
-        console.log(JSON.stringify({ error: e && e.message ? e.message : String(e) }));
-      }
-    })();
-  `;
+    (async () => {
+      try {
+        const mod = await import(process.env.ATTACK_PATH || './runs/attack.mjs');
+        if (!mod || typeof mod.attack !== 'function') {
+          console.log(JSON.stringify({ error: 'No attack() export found' }));
+          return;
+        }
+        const out = await mod.attack(target, http);
+        console.log(JSON.stringify(out || {}));
+      } catch (e) {
+        console.log(JSON.stringify({ error: e && e.message ? e.message : String(e) }));
+      }
+    })();
+  `;
   await fs.writeFile(RUNNER_PATH, runner, "utf8");
 }
 
-// ---------------------------------------------------------------------
-// API: run submitted attack code in Docker
-// ---------------------------------------------------------------------
+// ------------------------------------------------------
+// Lab API endpoints
+// ------------------------------------------------------
 
-// POST /api/lab/run  { code, target?, difficulty? }
+// GET /api/lab/tests?difficulty=easy|moderate|hard
+// Fetch tests/questions for a given difficulty without running code
+app.get("/api/lab/tests", (req, res) => {
+  try {
+    const diff = (req.query.difficulty || "easy").toLowerCase();
+
+    const selectedTests = selectTestsForDifficulty(diff);
+
+    // Send only meta info; mark all as not passed yet
+    const tests = selectedTests.map((t) => ({
+      id: t.id,
+      difficulty: t.difficulty,
+      title: t.title,
+      description: t.description,
+      points: t.points || 1,
+      passed: false,
+    }));
+
+    res.json(tests);
+  } catch (e) {
+    console.error("Error in /api/lab/tests:", e.message);
+    res.status(500).json({ error: "Failed to load tests" });
+  }
+});
+
+// POST /api/lab/run  { code, target?, difficulty? }
 app.post("/api/lab/run", async (req, res) => {
   try {
     const { code, target, difficulty } = req.body || {};
@@ -342,33 +452,60 @@ app.post("/api/lab/run", async (req, res) => {
       const findingText = parsed.finding ? String(parsed.finding) : "";
       const status = findingText.toLowerCase().includes("sqli")
         ? "success"
-        : "no_issue"; // For now, runs are anonymous; wire auth() here if you want per‑user logs
+        : "no_issue";
 
+      // ---- NEW: points-based test evaluation ----
+      const diff =
+        typeof difficulty === "string" ? difficulty.toLowerCase() : "easy"; // "easy" | "moderate" | "hard"
+      const selectedTests = selectTestsForDifficulty(diff);
+
+      const tests = selectedTests.map((t) => {
+        const points = t.points || 1;
+        // t.check(parsed) should return number of points earned for this test
+        const earnedRaw = t.check ? Number(t.check(parsed) || 0) : 0;
+        const earned = Math.max(0, Math.min(points, earnedRaw)); // clamp 0..points
+        const passed = earned >= points;
+
+        return {
+          id: t.id,
+          difficulty: t.difficulty,
+          title: t.title,
+          description: t.description,
+          points,
+          score: earned,
+          passed,
+        };
+      });
+
+      const score = tests.reduce((sum, t) => sum + t.score, 0);
+      const maxScore = tests.reduce((sum, t) => sum + (t.points || 1), 0);
+      const totalTests = tests.length;
+
+      // For now, runs are anonymous; wire auth() to set real user id
       const userId = null;
 
+      // Single, correct insert for dashboard
       db.run(
-        "INSERT INTO runs (user_id, finding, payload, status, raw_json) VALUES (?, ?, ?, ?, ?)",
-        [userId, findingText || null, parsed.payload || null, status, rawOut],
+        `INSERT INTO runs 
+         (user_id, difficulty, score, max_score, total_tests, finding, payload, status, raw_json) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          userId,
+          diff,
+          score,
+          maxScore,
+          totalTests,
+          findingText || null,
+          parsed.payload || null,
+          status,
+          rawOut,
+        ],
         (dbErr) => {
           if (dbErr) {
             console.error("Failed to insert run:", dbErr.message);
           }
         }
       );
-
-      const diff =
-        typeof difficulty === "string" ? difficulty.toLowerCase() : "easy";
-      const selectedTests = selectTestsForDifficulty(diff);
-
-      const tests = selectedTests.map((t) => ({
-        id: t.id,
-        difficulty: t.difficulty,
-        title: t.title,
-        description: t.description,
-        passed: !!t.check(parsed),
-      }));
-
-      const score = tests.filter((t) => t.passed).length;
 
       return res.json({
         ...parsed,
@@ -385,10 +522,9 @@ app.post("/api/lab/run", async (req, res) => {
   }
 });
 
-// ---------------------------------------------------------------------
+// ------------------------------------------------------
 // Target simulator routes (fake vulnerable app)
-// ---------------------------------------------------------------------
-
+// ------------------------------------------------------
 const targetRouter = express.Router();
 
 // GET /target/login?u=admin&p=<payload>
@@ -432,10 +568,9 @@ targetRouter.get("/echo", (req, res) => {
 
 app.use("/target", targetRouter);
 
-// ---------------------------------------------------------------------
+// ------------------------------------------------------
 // Start server
-// ---------------------------------------------------------------------
-
+// ------------------------------------------------------
 const PORT = 3001;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`API running on port ${PORT}!`);

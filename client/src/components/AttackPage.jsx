@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./attack-cyber.css";
 import Editor from "@monaco-editor/react";
 
@@ -27,28 +28,38 @@ export async function attack(target, http) {
 }
 `;
 
+const API_BASE = "http://localhost:3001";
+
+const difficultyOptions = [
+  { value: "easy", label: "Easy" },
+  { value: "moderate", label: "Moderate" },
+  { value: "hard", label: "Difficult" },
+];
+
 const AttackPage = () => {
-  // Attack-only mode: no defense UI/state
   const [code, setCode] = useState(defaultAttack);
   const [result, setResult] = useState(null);
   const [running, setRunning] = useState(false);
   const [events, setEvents] = useState([]);
 
-  // Use host.docker.internal so scripts executed inside Docker can reach your host API
   const [target, setTarget] = useState({
     url: "http://host.docker.internal:3001/target",
   });
 
-  // IMPORTANT: store backend difficulty keys: easy | medium | hard
-  const [difficulty, setDifficulty] = useState("easy"); // backend: easy | medium | hard
-  const [tests, setTests] = useState([]);
-  const [score, setScore] = useState(null);
+  const [difficulty, setDifficulty] = useState("easy");
+  const [allTests, setAllTests] = useState([]);
+  const [currentQuestion, setCurrentQuestion] = useState(null);
+  const [currentQuestionId, setCurrentQuestionId] = useState(null);
+  const [questionScore, setQuestionScore] = useState(0);
+  const [testsError, setTestsError] = useState("");
 
   const [aiInput, setAiInput] = useState(
     "Suggest SQLi payloads against a vulnerable login"
   );
   const [aiBusy, setAiBusy] = useState(false);
+
   const eventRef = useRef(null);
+  const navigate = useNavigate();
 
   // Auto scroll console
   useEffect(() => {
@@ -60,12 +71,75 @@ const AttackPage = () => {
   const addEvent = (e) =>
     setEvents((prev) => [...prev, { t: Date.now(), ...e }]);
 
+  // ---- Random question helper ----
+  const pickRandomQuestion = (tests, diff) => {
+    if (!Array.isArray(tests) || tests.length === 0) {
+      setCurrentQuestion(null);
+      setCurrentQuestionId(null);
+      return;
+    }
+
+    const targetLabel = diff === "medium" ? "moderate" : diff;
+
+    const sameBand = tests.filter((t) =>
+      String(t.difficulty || "")
+        .toLowerCase()
+        .includes(targetLabel)
+    );
+
+    const pool = sameBand.length > 0 ? sameBand : tests;
+    const idx = Math.floor(Math.random() * pool.length);
+    const q = pool[idx];
+
+    setCurrentQuestion(q);
+    setCurrentQuestionId(q.id);
+    setQuestionScore(q && q.passed ? 1 : 0);
+  };
+
+  // ---- Load tests when difficulty changes ----
+  const loadTestsForDifficulty = async (diff) => {
+    setTestsError("");
+    setAllTests([]);
+    setCurrentQuestion(null);
+    setCurrentQuestionId(null);
+    setQuestionScore(0);
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/api/lab/tests?difficulty=${encodeURIComponent(diff)}`
+      );
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load tests");
+      }
+
+      const normalized = Array.isArray(data)
+        ? data.map((t) => ({ ...t, passed: !!t.passed }))
+        : [];
+
+      setAllTests(normalized);
+      pickRandomQuestion(normalized, diff);
+      addEvent({
+        level: "info",
+        msg: `Loaded ${normalized.length} checks for ${diff} difficulty.`,
+      });
+    } catch (err) {
+      console.error("Load tests error:", err);
+      setTestsError(err.message || "Failed to load tests");
+      addEvent({ level: "error", msg: err.message || "Failed to load tests" });
+    }
+  };
+
+  useEffect(() => {
+    loadTestsForDifficulty(difficulty);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [difficulty]);
+
+  // ---- Run attack script ----
   const runScript = async () => {
-    console.log("Run button clicked");
     setRunning(true);
     setResult(null);
-    setTests([]);
-    setScore(null);
 
     addEvent({
       level: "info",
@@ -73,15 +147,13 @@ const AttackPage = () => {
     });
 
     try {
-      const res = await fetch("http://localhost:3001/api/lab/run", {
+      const res = await fetch(`${API_BASE}/api/lab/run`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, mode: "attack", target, difficulty }),
       });
-      console.log("Response status:", res.status);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "run failed");
-      console.log("Response data:", data);
 
       setResult(data);
 
@@ -94,19 +166,25 @@ const AttackPage = () => {
         addEvent({ level: "success", msg: `Finding: ${data.finding}` });
       }
 
-      // Save tests + score from backend
       if (Array.isArray(data.tests)) {
-        setTests(data.tests);
-      } else {
-        setTests([]);
-      }
-      if (typeof data.score === "number") {
-        setScore(data.score);
-      } else {
-        setScore(null);
+        setAllTests(data.tests);
+        if (currentQuestionId != null) {
+          const updated = data.tests.find((t) => t.id === currentQuestionId);
+          if (updated) {
+            setCurrentQuestion(updated);
+            const full = updated.points || 1;
+            const earned =
+              typeof updated.score === "number"
+                ? updated.score
+                : updated.passed
+                ? full
+                : 0;
+            setQuestionScore(earned);
+          }
+        }
       }
     } catch (err) {
-      console.error(err);
+      console.error("Run script error:", err);
       addEvent({ level: "error", msg: err.message });
       alert("Error running script: " + err.message);
     } finally {
@@ -114,16 +192,17 @@ const AttackPage = () => {
     }
   };
 
-  const stopRun = async () => {
+  const stopRun = () => {
     setRunning(false);
     addEvent({ level: "warn", msg: "Stopped." });
   };
 
+  // ---- AI helper ----
   const askAI = async () => {
     setAiBusy(true);
     addEvent({ level: "info", msg: "AI agent thinking..." });
     try {
-      const res = await fetch("http://localhost:3001/api/ai/assist", {
+      const res = await fetch(`${API_BASE}/api/ai/assist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,13 +241,51 @@ const AttackPage = () => {
     []
   );
 
-  // Pick a "current question" to show clearly: first failed test, otherwise first test
-  const currentTest = useMemo(() => {
-    if (!tests || tests.length === 0) return null;
-    const firstFailed = tests.find((t) => !t.passed);
-    return firstFailed || tests[0];
-  }, [tests]);
+  const isLoggedIn = !!localStorage.getItem("token");
 
+  // ---- Navigate to solution page for this question ----
+  const goToSolution = () => {
+    if (!currentQuestion || !currentQuestion.passed) return;
+
+    navigate("/attack/solution", {
+      state: {
+        question: currentQuestion,
+        difficulty,
+        score: questionScore,
+      },
+    });
+  };
+
+  // ==========================
+  // Login gate for Attack Lab
+  // ==========================
+  if (!isLoggedIn) {
+    return (
+      <main className="atk-viewport">
+        <section className="atk-wrap">
+          <div className="sim-card">
+            <div className="card-head">
+              <span className="chip">Attack Lab</span>
+            </div>
+            <div className="sim-body">
+              <h2 className="question-title">Login required</h2>
+              <p className="question-desc">
+                You need to log in before accessing the Red Team Lab. This keeps
+                your progress and scores linked to your account.
+              </p>
+              <button className="run" onClick={() => navigate("/login")}>
+                Go to Login
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  // ==========================
+  // Main lab UI (logged in)
+  // ==========================
   return (
     <main className="atk-viewport">
       <div className="atk-beams" />
@@ -186,6 +303,13 @@ const AttackPage = () => {
                 onChange={(e) => setTarget({ ...target, url: e.target.value })}
               />
             </div>
+            {currentQuestion && (
+              <div className="question-meta">
+                <span>
+                  Marks: {questionScore} / {currentQuestion.points || 1}
+                </span>
+              </div>
+            )}
 
             <div className="target">
               <label>Difficulty</label>
@@ -193,10 +317,11 @@ const AttackPage = () => {
                 value={difficulty}
                 onChange={(e) => setDifficulty(e.target.value)}
               >
-                {/* Labels: Easy / Moderate / Difficult, values: easy / medium / hard */}
-                <option value="easy">Easy</option>
-                <option value="medium">Moderate</option>
-                <option value="hard">Difficult</option>
+                {difficultyOptions.map((d) => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -210,7 +335,7 @@ const AttackPage = () => {
         </header>
 
         <section className="atk-grid-2">
-          {/* Left: editor + AI helper */}
+          {/* Left: editor + AI helper + inline console */}
           <div className="editor-card">
             <div className="card-head">
               <span className="chip">Attack Script</span>
@@ -236,35 +361,72 @@ const AttackPage = () => {
                 {aiBusy ? "AI..." : "Ask AI"}
               </button>
             </div>
+
+            <div className="console-inline">
+              <div className="card-head">
+                <span className="chip">Event Console</span>
+              </div>
+              <div className="console" ref={eventRef}>
+                {events.map((e, i) => (
+                  <div key={i} className={`evt ${e.level}`}>
+                    <time>{new Date(e.t).toLocaleTimeString()}</time>
+                    <span className="msg">{e.msg}</span>
+                  </div>
+                ))}
+                {!events.length && <div className="muted">No events yet.</div>}
+              </div>
+            </div>
           </div>
 
-          {/* Middle: question + simulator + tests + JSON result */}
+          {/* Right: question + minimal info + output */}
           <div className="sim-card">
             <div className="card-head">
               <span className="chip">Target Simulator</span>
             </div>
             <div className="sim-body">
-              {/* Clear question section for students */}
-              {currentTest ? (
+              {currentQuestion ? (
                 <div className="question-panel">
                   <div className="question-tag">
-                    {currentTest.passed ? "Completed" : "Current challenge"}
+                    {currentQuestion.passed ? "Completed" : "Current challenge"}
                   </div>
                   <div className="question-meta">
-                    <span>Difficulty: {currentTest.difficulty}</span>
+                    <span>
+                      Difficulty:{" "}
+                      {String(currentQuestion.difficulty || "").toUpperCase()}
+                    </span>
                   </div>
-                  <h2 className="question-title">{currentTest.title}</h2>
-                  {currentTest.description && (
-                    <p className="question-desc">{currentTest.description}</p>
+                  <h2 className="question-title">
+                    {currentQuestion.title || "Challenge"}
+                  </h2>
+                  {currentQuestion.description && (
+                    <p className="question-desc">
+                      {currentQuestion.description}
+                    </p>
+                  )}
+
+                  {currentQuestion.passed && (
+                    <button
+                      className="run"
+                      style={{ marginTop: "8px" }}
+                      onClick={goToSolution}
+                    >
+                      View solution & score
+                    </button>
                   )}
                 </div>
               ) : (
                 <div className="question-panel empty">
                   <div className="question-tag">Challenge</div>
                   <p className="question-desc">
-                    Pick a difficulty, run your attack, and your objectives will
+                    Pick a difficulty; a random question from that band will
                     appear here.
                   </p>
+                </div>
+              )}
+
+              {testsError && (
+                <div className="lg-error" style={{ marginBottom: "6px" }}>
+                  {testsError}
                 </div>
               )}
 
@@ -283,41 +445,6 @@ const AttackPage = () => {
                 </div>
               </div>
 
-              {/* Tests and score summary */}
-              {tests.length > 0 && (
-                <div className="tests-panel">
-                  <div className="tests-head">
-                    <span>
-                      Checks for:{" "}
-                      <strong>{result?.difficulty || difficulty}</strong>
-                    </span>
-                    <span>
-                      Score:{" "}
-                      <strong>
-                        {score !== null ? score : 0} / {tests.length}
-                      </strong>
-                    </span>
-                  </div>
-                  <ul className="tests-list">
-                    {tests.map((t) => (
-                      <li key={t.id} className={t.passed ? "passed" : "failed"}>
-                        <div className="tests-title-row">
-                          <span className="tests-badge">{t.difficulty}</span>
-                          <span className="tests-title">{t.title}</span>
-                          <span className="tests-status">
-                            {t.passed ? "Passed" : "Failed"}
-                          </span>
-                        </div>
-                        {t.description && (
-                          <p className="tests-desc">{t.description}</p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* HTTP log */}
               <div className="http-log">
                 <div className="line head">
                   <span>M</span>
@@ -336,29 +463,12 @@ const AttackPage = () => {
                 )}
               </div>
 
-              {/* Raw JSON result */}
               <div className="res-box">
                 <strong>Result</strong>
                 <pre>
                   {JSON.stringify(result ?? { info: "Waiting..." }, null, 2)}
                 </pre>
               </div>
-            </div>
-          </div>
-
-          {/* Right: console */}
-          <div className="console-card">
-            <div className="card-head">
-              <span className="chip">Event Console</span>
-            </div>
-            <div className="console" ref={eventRef}>
-              {events.map((e, i) => (
-                <div key={i} className={`evt ${e.level}`}>
-                  <time>{new Date(e.t).toLocaleTimeString()}</time>
-                  <span className="msg">{e.msg}</span>
-                </div>
-              ))}
-              {!events.length && <div className="muted">No events yet.</div>}
             </div>
           </div>
         </section>
