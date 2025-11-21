@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./login-cyber.css";
 
 const API_BASE = "http://localhost:3001"; // adjust if your backend port is different
@@ -9,7 +10,8 @@ const LoginPage = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // tracks login state
+
+  const navigate = useNavigate();
 
   const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
@@ -58,7 +60,8 @@ const LoginPage = () => {
         localStorage.setItem("token", data.token);
         setMessage(`Logged in as ${form.username}`);
 
-        setIsLoggedIn(true); // mark as logged in
+        // For now, everyone just goes to dashboard
+        navigate("/dashboard");
       }
     } catch (err) {
       setError(err.message || "Something went wrong");
@@ -67,33 +70,6 @@ const LoginPage = () => {
     }
   };
 
-  // Render after login (dashboard/welcome)
-  if (isLoggedIn) {
-    return (
-      <main className="lg-viewport">
-        <section className="lg-wrap">
-          <div className="lg-card">
-            <h2>Welcome, {form.username}!</h2>
-            <p>This is the dashboard or post-login screen.</p>
-            <button
-              onClick={() => {
-                setIsLoggedIn(false);
-                setForm({ username: "", password: "" });
-                setMessage("");
-                setError("");
-                setMode("login");
-                localStorage.removeItem("token");
-              }}
-            >
-              Logout
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  // Render login/register form
   return (
     <main className="lg-viewport">
       <div className="lg-beams" />

@@ -63,3 +63,128 @@
 .evt.error .msg{color:#f87171}
 .evt.warn .msg{color:#fbbf24}
 .evt.success .msg{color:#34d399}
+
+/* === Question section above simulator === */
+.question-panel {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #0b1120;
+  border: 1px solid #161e3a;
+}
+
+.question-panel.empty {
+  opacity: 0.85;
+}
+
+.question-tag {
+  display: inline-flex;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.6);
+  color: #bfdbfe;
+  margin-bottom: 4px;
+}
+
+.question-meta {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.question-title {
+  margin: 2px 0 4px;
+  font-size: 15px;
+  color: #e5e7eb;
+}
+
+.question-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* === Tests list and score summary === */
+.tests-panel {
+  margin-top: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #0b1120;
+  border: 1px solid #161e3a;
+  font-size: 13px;
+}
+
+.tests-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #e5e7eb;
+}
+
+.tests-head strong {
+  color: #c4b5fd;
+}
+
+.tests-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tests-list li {
+  padding: 6px 4px;
+  border-top: 1px solid #131a2a;
+}
+
+.tests-list li:first-child {
+  border-top: none;
+}
+
+.tests-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.tests-badge {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.25);
+  border: 1px solid rgba(59, 130, 246, 0.6);
+  color: #bfdbfe;
+}
+
+.tests-title {
+  flex: 1;
+  font-weight: 600;
+  color: #e5e7eb;
+}
+
+.tests-status {
+  font-size: 12px;
+}
+
+.tests-list li.passed .tests-status {
+  color: #34d399;
+}
+
+.tests-list li.failed .tests-status {
+  color: #f97373;
+}
+
+.tests-desc {
+  margin: 0;
+  margin-top: 2px;
+  color: #9ca3af;
+  font-size: 12px;
+}
