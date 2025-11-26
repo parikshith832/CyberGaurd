@@ -1,11 +1,14 @@
+// src/components/LoginPage.jsx (or wherever you keep it)
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "./login-cyber.css";
 
-const API_BASE = "http://localhost:3001"; // adjust if your backend port is different
+const API_BASE = "http://localhost:3001"; // change if your backend runs on another port
 
 const LoginPage = () => {
-  const [mode, setMode] = useState("login"); // "login" or "register"
+  // "login" or "register"
+  const [mode, setMode] = useState("login");
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
@@ -58,10 +61,15 @@ const LoginPage = () => {
 
         // Save token for later API calls
         localStorage.setItem("token", data.token);
-        setMessage(`Logged in as ${form.username}`);
 
-        // For now, everyone just goes to dashboard
-        navigate("/dashboard");
+        // Optional: decode to inspect payload or roles
+        // const payload = JSON.parse(
+        //   atob(data.token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))
+        // );
+        // console.log("JWT payload:", payload);
+
+        setMessage(`Logged in as ${form.username}`);
+        navigate("/dashboard", { replace: true });
       }
     } catch (err) {
       setError(err.message || "Something went wrong");

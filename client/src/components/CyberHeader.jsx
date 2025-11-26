@@ -1,6 +1,6 @@
 // client/src/components/CyberHeader.jsx
 
-import React, { useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./cyber-header.css";
 
@@ -8,16 +8,24 @@ const CyberHeader = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Read token once per render; this is enough for header swaps after login/logout
-  const isLoggedIn = useMemo(() => !!localStorage.getItem("token"), []);
+  // Track login state from token
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem("token"));
+
+  // Re-check token whenever route changes (after login/logout navigation)
+  useEffect(() => {
+    const hasToken = !!localStorage.getItem("token");
+    setIsLoggedIn(hasToken);
+  }, [location.pathname]);
 
   const isActive = (path) =>
-    location.pathname.startsWith(path) ? "cy-pill active" : "cy-pill"; // active class matches your CSS [web:374][web:380]
+    location.pathname.startsWith(path) ? "cy-pill active" : "cy-pill";
 
-  const onLogin = () => navigate("/login"); // simple navigate to login page [web:382][web:384]
+  const onLogin = () => navigate("/login");
+
   const onLogout = () => {
-    localStorage.removeItem("token"); // clear JWT on logout [web:351][web:352]
-    navigate("/login"); // return to login after logout [web:357][web:351]
+    localStorage.removeItem("token");
+    setIsLoggedIn(false);
+    navigate("/login");
   };
 
   // optional tiny binary rain seeds
@@ -122,7 +130,7 @@ const CyberHeader = () => {
       </div>
 
       {/* Bottom ticker */}
-      <div className="cy-ticker">
+      {/*<div className="cy-ticker">
         <div className="track">
           <span>WAF RULES SYNCED</span>
           <span>HONEYPOT: ONLINE</span>
@@ -130,7 +138,7 @@ const CyberHeader = () => {
           <span>PACKETS SCANNED: 24,583</span>
           <span>ALERTS: LOW</span>
         </div>
-      </div>
+      </div>*/}
     </header>
   );
 };

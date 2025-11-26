@@ -1,6 +1,7 @@
 // client/src/components/Dashboard.jsx
 
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE = "http://localhost:3001";
 
@@ -9,6 +10,16 @@ const Dashboard = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+
+  const navigate = useNavigate();
+
+  // Redirect to /login if there is no auth token
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   const fetchData = async () => {
     try {
@@ -156,11 +167,11 @@ const Dashboard = () => {
                     {summary
                       ? safe(summary.byDifficulty.easy.runs)
                       : loading
-                      ? "…\n"
+                      ? "…"
                       : 0}
                   </span>
                   <span>
-                    <br></br>
+                    <br />
                     Score:{" "}
                     {summary
                       ? safe(summary.byDifficulty.easy.score)
@@ -186,7 +197,7 @@ const Dashboard = () => {
                       : 0}
                   </span>
                   <span>
-                    <br></br>
+                    <br />
                     Score:{" "}
                     {summary
                       ? safe(summary.byDifficulty.moderate.score)
@@ -212,7 +223,7 @@ const Dashboard = () => {
                       : 0}
                   </span>
                   <span>
-                    <br></br>
+                    <br />
                     Score:{" "}
                     {summary
                       ? safe(summary.byDifficulty.hard.score)

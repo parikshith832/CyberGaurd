@@ -1,6 +1,34 @@
 // backend/attackTests.js
 
 // out = parsed JSON from the sandbox: { finding, payload, http, ... }
+// Your attack() can also return a custom `requests` array; we treat that
+// as a fallback if `http` is not present.
+
+function getHttpLogs(out) {
+  if (!out) return [];
+  if (Array.isArray(out.http)) return out.http;
+
+  // Fallback: if attack() returns `requests` instead of `http`
+  if (Array.isArray(out.requests)) {
+    return out.requests.map((r) => {
+      let path = r.path || "";
+      try {
+        if (!path && typeof r.url === "string") {
+          path = new URL(r.url).pathname;
+        }
+      } catch {
+        // ignore URL parse errors
+      }
+      return {
+        method: r.method,
+        path,
+        status: r.status,
+      };
+    });
+  }
+
+  return [];
+}
 
 function easyTests() {
   return [
@@ -12,7 +40,8 @@ function easyTests() {
         "Send at least one SQLi payload to /login that causes a 500 with SQL error text and report it in finding.",
       points: 10,
       check(out) {
-        const http = Array.isArray(out.http) ? out.http : [];
+        const http = getHttpLogs(out);
+
         const has500Login = http.some(
           (h) =>
             String(h.path || "").startsWith("/login") &&
@@ -40,9 +69,17 @@ function easyTests() {
       check(out) {
         const payload = String(out.payload || "");
         const lower = payload.toLowerCase();
+
         const hasClassic =
           payload.includes("' OR '1'='1") || lower.includes("union select");
-        return hasClassic ? 5 : 0;
+
+        // Also accept if payload appears only in finding text
+        const finding =
+          typeof out.finding === "string" ? out.finding.toLowerCase() : "";
+        const findingHasClassic =
+          finding.includes("' or '1'='1") || finding.includes("union select");
+
+        return hasClassic || findingHasClassic ? 5 : 0;
       },
     },
     {
@@ -53,11 +90,13 @@ function easyTests() {
         "Use the provided http helper to perform at least one real request (no static output).",
       points: 5,
       check(out) {
-        const http = Array.isArray(out.http) ? out.http : [];
+        const http = getHttpLogs(out);
+
         // Require at least one real-looking entry
         const hasRequest = http.some(
           (h) => h && h.method && h.path && typeof h.status !== "undefined"
         );
+
         return hasRequest ? 5 : 0;
       },
     },
@@ -74,7 +113,7 @@ function moderateTests() {
         "Send at least one payload to /search that triggers a 500 DB error.",
       points: 10,
       check(out) {
-        const http = Array.isArray(out.http) ? out.http : [];
+        const http = getHttpLogs(out);
         const has500Search = http.some(
           (h) =>
             String(h.path || "").startsWith("/search") &&
@@ -91,7 +130,7 @@ function moderateTests() {
         "Loop through at least three different payloads instead of a single hard-coded one.",
       points: 5,
       check(out) {
-        const http = Array.isArray(out.http) ? out.http : [];
+        const http = getHttpLogs(out);
         const uniquePaths = new Set(http.map((h) => h.path));
         return uniquePaths.size >= 3 ? 5 : 0;
       },
@@ -109,7 +148,7 @@ function hardTests() {
         "Target both /login and /search at least once and aggregate the findings.",
       points: 10,
       check(out) {
-        const http = Array.isArray(out.http) ? out.http : [];
+        const http = getHttpLogs(out);
         const hitLogin = http.some((h) =>
           String(h.path || "").startsWith("/login")
         );
@@ -151,4 +190,13 @@ function selectTestsForDifficulty(diff) {
   return easyTests();
 }
 
-module.exports = { selectTestsForDifficulty };
+// Optional helper: some server code may call this to show test metadata
+function getTestsForDifficulty(diff) {
+  const tests = selectTestsForDifficulty(diff);
+  return tests.map(({ check, ...meta }) => meta);
+}
+
+module.exports = {
+  selectTestsForDifficulty,
+  getTestsForDifficulty,
+};
