@@ -1,0 +1,129 @@
+/* Button Base Styles */
+.btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-weight: 600;
+  font-family: var(--font-sans);
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.3);
+}
+
+/* Button Sizes */
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.btn-md {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+.btn-lg {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+}
+
+/* Button Variants */
+.btn-primary {
+  background: var(--gradient-cyber);
+  color: white;
+}
+
+.btn-primary:hover:not(.btn-disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(0, 240, 255, 0.4);
+}
+
+.btn-secondary {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.btn-secondary:hover:not(.btn-disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--primary-cyan);
+}
+
+.btn-success {
+  background: var(--gradient-success);
+  color: white;
+}
+
+.btn-success:hover:not(.btn-disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-danger {
+  background: var(--gradient-danger);
+  color: white;
+}
+
+.btn-danger:hover:not(.btn-disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(239, 68, 68, 0.4);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+}
+
+.btn-ghost:hover:not(.btn-disabled) {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--primary-cyan);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary-cyan);
+  border: 2px solid var(--primary-cyan);
+}
+
+.btn-outline:hover:not(.btn-disabled) {
+  background: var(--primary-cyan);
+  color: var(--bg-primary);
+}
+
+/* Button States */
+.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-loading {
+  opacity: 0.8;
+  cursor: wait;
+  pointer-events: none;
+}
+
+.btn-full {
+  width: 100%;
+}
+
+/* Button Icon */
+.btn-icon {
+  display: flex;
+  align-items: center;
+}
+
+.btn-spinner {
+  display: flex;
+  align-items: center;
+}
