@@ -89,5 +89,6 @@ You can add full names, roles, and contact links here if you want to share this 
 
 ## License
 
-This project currently does not specify a license; a suitable open-source license such as MIT can be added later using GitHub’s “Add license” option.
-Always respect intellectual property and copyright when using third-party libraries, datasets, or resources within this project.
+This project is licensed under the MIT License.  
+Copyright (c) 2025 Parikshith S.  
+See the LICENSE file in this repository for the full license text.
