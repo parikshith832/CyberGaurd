@@ -186,7 +186,7 @@
 /* === Left card: editor + AI + console === */
 .editor-wrap{
   border:1px solid #161e3a;
-  border-radius:12px;
+  border-radius:1px;
   overflow:hidden;
   /* no flex:1 so editor keeps its natural height */
 }

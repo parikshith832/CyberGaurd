@@ -1,90 +1,56 @@
-/* Card Base Styles */
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  transition: all var(--transition-base);
+.cg-card {
+  background: var(--cg-surface-elevated);
+  border-radius: var(--cg-radius-lg);
+  border: 1px solid var(--cg-border-subtle);
+  padding: 1.25rem;
+  box-shadow: var(--cg-shadow-soft);
+  backdrop-filter: blur(16px);
+  transition:
+    transform 160ms ease-out,
+    box-shadow 160ms ease-out,
+    border-color 160ms ease-out,
+    background 160ms ease-out;
 }
 
-.card-hoverable {
-  cursor: pointer;
+.cg-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--cg-shadow-medium);
+  border-color: var(--cg-accent);
+  background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--cg-surface-elevated) 88%, var(--cg-accent) 12%),
+      var(--cg-surface-elevated)
+  );
 }
 
-.card-hoverable:hover {
-  transform: translateY(-4px);
-  border-color: var(--primary-cyan);
-  box-shadow: var(--shadow-glow);
-}
-
-/* Card Variants */
-.card-default {
-  background: var(--bg-card);
-}
-
-.card-elevated {
-  background: var(--bg-elevated);
-  box-shadow: var(--shadow-lg);
-}
-
-.card-gradient {
-  background: var(--gradient-cyber);
-  border: none;
-}
-
-.card-glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Card Header */
-.card-header {
+.cg-card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: var(--space-lg);
-  border-bottom: 1px solid var(--border-secondary);
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
 }
 
-.card-header-content {
-  flex: 1;
+.cg-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--cg-text-strong);
+  text-transform: uppercase;
 }
 
-.card-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
+.cg-card-subtitle {
+  font-size: 0.8rem;
+  color: var(--cg-text-muted);
 }
 
-.card-subtitle {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin: var(--space-xs) 0 0 0;
+.cg-card-content {
+  font-size: 0.9rem;
+  color: var(--cg-text-soft);
 }
 
-.card-header-action {
-  margin-left: var(--space-md);
-}
-
-/* Card Body */
-.card-body {
-  color: var(--text-primary);
-}
-
-.card-padding-none .card-body {
-  padding: 0;
-}
-
-.card-padding-sm .card-body {
-  padding: var(--space-sm);
-}
-
-.card-padding-md .card-body {
-  padding: var(--space-lg);
-}
-
-.card-padding-lg .card-body {
-  padding: var(--space-xl);
+.cg-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
 }

@@ -1,40 +1,50 @@
-import React from 'react';
-import './Card.css';
+import React from "react";
+import "./Card.css";
 
-const Card = ({ 
-  children, 
-  title = null, 
-  subtitle = null,
-  headerAction = null,
-  className = '',
-  variant = 'default',
-  hoverable = false,
-  padding = 'md'
-}) => {
-  const classes = [
-    'card',
-    `card-${variant}`,
-    `card-padding-${padding}`,
-    hoverable ? 'card-hoverable' : '',
-    className
-  ].filter(Boolean).join(' ');
-
+export function Card({ className = "", children, ...props }) {
   return (
-    <div className={classes}>
-      {(title || subtitle || headerAction) && (
-        <div className="card-header">
-          <div className="card-header-content">
-            {title && <h3 className="card-title">{title}</h3>}
-            {subtitle && <p className="card-subtitle">{subtitle}</p>}
-          </div>
-          {headerAction && <div className="card-header-action">{headerAction}</div>}
-        </div>
-      )}
-      <div className="card-body">
-        {children}
-      </div>
+    <div className={`cg-card ${className}`} {...props}>
+      {children}
     </div>
   );
-};
+}
 
-export default Card;
+export function CardHeader({ className = "", children, ...props }) {
+  return (
+    <div className={`cg-card-header ${className}`} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardTitle({ className = "", children, ...props }) {
+  return (
+    <h3 className={`cg-card-title ${className}`} {...props}>
+      {children}
+    </h3>
+  );
+}
+
+export function CardSubtitle({ className = "", children, ...props }) {
+  return (
+    <p className={`cg-card-subtitle ${className}`} {...props}>
+      {children}
+    </p>
+  );
+}
+
+export function CardContent({ className = "", children, ...props }) {
+  return (
+    <div className={`cg-card-content ${className}`} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardFooter({ className = "", children, ...props }) {
+  return (
+    <div className={`cg-card-footer ${className}`} {...props}>
+      {children}
+    </div>
+  );
+}

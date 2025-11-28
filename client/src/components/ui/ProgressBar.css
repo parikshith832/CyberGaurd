@@ -1,76 +1,33 @@
-.progress-wrapper {
-  width: 100%;
-}
-
-.progress-label {
+.cg-progress {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-sm);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.progress-percentage {
-  font-weight: 600;
-  color: var(--text-primary);
+.cg-progress-label {
+  font-size: 0.75rem;
+  color: var(--cg-text-soft);
 }
 
-.progress-bar {
+.cg-progress-track {
+  position: relative;
   width: 100%;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  position: relative;
-}
-
-.progress-sm {
-  height: 6px;
-}
-
-.progress-md {
-  height: 10px;
-}
-
-.progress-lg {
-  height: 14px;
-}
-
-.progress-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.5s ease;
-  position: relative;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 0 0, #ffffff12, transparent 60%),
+              var(--cg-surface-raised);
   overflow: hidden;
 }
 
-.progress-primary .progress-fill {
-  background: var(--gradient-cyber);
-}
-
-.progress-success .progress-fill {
-  background: var(--gradient-success);
-}
-
-.progress-danger .progress-fill {
-  background: var(--gradient-danger);
-}
-
-.progress-animated .progress-glow {
+.cg-progress-fill {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 50px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
-  }
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--cg-accent),
+    color-mix(in srgb, var(--cg-accent) 80%, var(--cg-success) 20%)
+  );
+  box-shadow: 0 0 12px color-mix(in srgb, var(--cg-accent) 70%, transparent 30%);
+  transition: width 220ms ease-out;
 }

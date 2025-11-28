@@ -1,27 +1,23 @@
-import React from 'react';
-import './Badge.css';
+import React from "react";
+import "./Badge.css";
 
-const Badge = ({ 
-  children, 
-  variant = 'default',
-  size = 'md',
-  dot = false,
-  className = ''
-}) => {
-  const classes = [
-    'badge',
-    `badge-${variant}`,
-    `badge-${size}`,
-    dot ? 'badge-dot' : '',
-    className
-  ].filter(Boolean).join(' ');
+const difficultyClassMap = {
+  easy: "cg-badge-easy",
+  medium: "cg-badge-medium",
+  hard: "cg-badge-hard",
+};
+
+export function Badge({
+  variant = "outline",
+  difficulty,
+  className = "",
+  children,
+}) {
+  const diffClass = difficulty ? difficultyClassMap[difficulty] || "" : "";
 
   return (
-    <span className={classes}>
-      {dot && <span className="badge-dot-indicator" />}
+    <span className={`cg-badge cg-badge-${variant} ${diffClass} ${className}`}>
       {children}
     </span>
   );
-};
-
-export default Badge;
+}
